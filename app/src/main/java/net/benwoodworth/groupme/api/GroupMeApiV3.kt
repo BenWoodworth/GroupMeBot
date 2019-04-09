@@ -465,4 +465,31 @@ interface GroupMeApiV3 {
             val bot_id: String
         )
     }
+
+
+    val users: UsersApi
+
+    interface UsersApi {
+
+        val sms_mode: SmsModeApi
+
+        interface SmsModeApi {
+
+            /**
+             * [https://dev.groupme.com/docs/v3#sms_mode_create]
+             */
+            suspend operator fun invoke(request: SmsModeCreateRequest): Response<Nothing>
+
+            @Serializable
+            data class SmsModeCreateRequest(
+                val duration: Int,
+                val registration_id: String? = null
+            )
+
+            /**
+             * [https://dev.groupme.com/docs/v3#sms_mode_delete]
+             */
+            suspend fun delete(): Response<Nothing>
+        }
+    }
 }
