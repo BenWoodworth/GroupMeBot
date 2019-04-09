@@ -15,7 +15,6 @@ interface GroupMeApiV3 {
         val response: T?,
         val meta: Meta? = null
     ) {
-
         @Serializable
         data class Meta(
             val code: Int,
@@ -37,7 +36,6 @@ interface GroupMeApiV3 {
         val share_url: String,
         val messages: Messages
     ) {
-
         @Serializable
         data class Messages(
             val count: Int,
@@ -45,7 +43,6 @@ interface GroupMeApiV3 {
             val last_message_creates_at: String,
             val preview: Preview
         ) {
-
             @Serializable
             data class Preview(
                 val nickname: String,
@@ -81,6 +78,7 @@ interface GroupMeApiV3 {
         val charmap: List<List<Int>>? = null,
         val user_ids: List<String>?
     )
+
 
     val groups: GroupsApi
 
@@ -125,6 +123,7 @@ interface GroupMeApiV3 {
             share: Boolean? = null
         ): Response<Group>
 
+
         operator fun get(id: String): GroupApi
 
         interface GroupApi {
@@ -150,6 +149,7 @@ interface GroupMeApiV3 {
              */
             suspend fun destroy(): Response<Nothing>
 
+
             val join: JoinApi
 
             interface JoinApi {
@@ -158,6 +158,7 @@ interface GroupMeApiV3 {
                  * [https://dev.groupme.com/docs/v3#groups_rejoin]
                  */
                 suspend operator fun invoke(): Response<Group>
+
 
                 operator fun get(shareToken: String): JoinWithTokenApi
 
@@ -175,6 +176,7 @@ interface GroupMeApiV3 {
                 )
             }
 
+
             val members: MembersApi
 
             interface MembersApi {
@@ -188,7 +190,6 @@ interface GroupMeApiV3 {
                 data class AddRequest(
                     val members: List<AddRequestMember>
                 ) {
-
                     @Serializable
                     data class AddRequestMember(
                         val nickname: String,
@@ -203,6 +204,7 @@ interface GroupMeApiV3 {
                 data class AddResponse(
                     val results_id: String
                 )
+
 
                 operator fun get(membershipId: String): MemberApi
 
@@ -222,7 +224,6 @@ interface GroupMeApiV3 {
                     data class UpdateRequest(
                         val membership: Membership
                     ) {
-
                         @Serializable
                         data class Membership(
                             val nickname: String? = null,
@@ -230,6 +231,7 @@ interface GroupMeApiV3 {
                         )
                     }
                 }
+
 
                 val results: ResultsApi
 
@@ -251,6 +253,7 @@ interface GroupMeApiV3 {
                     }
                 }
             }
+
 
             val messages: GroupMessagesApi
 
@@ -283,7 +286,6 @@ interface GroupMeApiV3 {
                 data class CreateRequest(
                     val message: CreateRequestMessage
                 ) {
-
                     @Serializable
                     data class CreateRequestMessage(
                         val source_guid: String,
@@ -299,6 +301,7 @@ interface GroupMeApiV3 {
             }
         }
     }
+
 
     val direct_messages: DirectMessagesApi
 
@@ -345,7 +348,6 @@ interface GroupMeApiV3 {
         data class CreateRequest(
             val direct_message: CreateRequestMessage
         ) {
-
             @Serializable
             data class CreateRequestMessage(
                 val source_guid: String,
@@ -359,5 +361,31 @@ interface GroupMeApiV3 {
         data class  CreateResponse(
             val direct_message: DirectMessage
         )
+    }
+
+
+    val messages: MessagesApi
+
+    interface MessagesApi {
+
+        operator fun get(conversation_id: String): WithConversationIdApi
+
+        interface WithConversationIdApi {
+
+            operator fun get(message_id: String): WithMessageIdApi
+
+            interface WithMessageIdApi {
+
+                /**
+                 * [https://dev.groupme.com/docs/v3#likes_create]
+                 */
+                suspend fun like(): Response<Nothing>
+
+                /**
+                 * [https://dev.groupme.com/docs/v3#likes_destroy]
+                 */
+                suspend fun unlike(): Response<Nothing>
+            }
+        }
     }
 }
