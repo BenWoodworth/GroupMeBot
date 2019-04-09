@@ -498,6 +498,39 @@ interface GroupMeApiV3 {
 
     interface UsersApi {
 
+        @Serializable
+        data class User(
+            val id: String,
+            val phone_number: String,
+            val image_url: String,
+            val name: String,
+            val created_at: Long,
+            val updated_at: Long,
+            val email: String,
+            val sms: Boolean
+        )
+
+        /**
+         * [https://dev.groupme.com/docs/v3#users_me]
+         */
+        suspend fun me(): Response<User>
+
+        /**
+         * [https://dev.groupme.com/docs/v3#users_update]
+         */
+        suspend fun update(request: UserUpdateRequest): Response<User>
+
+        @Serializable
+        data class UserUpdateRequest(
+            val avatar_url: String? = null,
+            val name: String? = null,
+            val email: String? = null,
+            val zip_code: String? = null
+        )
+
+        /**
+         * [https://dev.groupme.com/docs/v3#sms_mode]
+         */
         val sms_mode: SmsModeApi
 
         interface SmsModeApi {
