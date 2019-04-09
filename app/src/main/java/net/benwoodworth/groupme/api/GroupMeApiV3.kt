@@ -552,4 +552,64 @@ interface GroupMeApiV3 {
             suspend fun delete(): Response<Nothing>
         }
     }
+
+
+    /**
+     * [https://dev.groupme.com/docs/v3#blocks]
+     */
+    val blocks: BlocksApi
+
+    interface BlocksApi {
+
+        @Serializable
+        data class Block(
+            val user_id: String,
+            val blocked_user_id: String,
+            val created_at: Long
+        )
+
+        /**
+         * [https://dev.groupme.com/docs/v3#blocks_index]
+         */
+        suspend operator fun invoke(user: String): Response<BlocksIndexResponse>
+
+        @Serializable
+        data class BlocksIndexResponse(
+            val blocks: List<Block>
+        )
+
+        /**
+         * [https://dev.groupme.com/docs/v3#blocks_between]
+         */
+        suspend fun between(
+            user: String,
+            otherUser: String
+        ): Response<BlockBetweenResponse>
+
+        @Serializable
+        data class BlockBetweenResponse(
+            val between: Boolean
+        )
+
+        /**
+         * [https://dev.groupme.com/docs/v3#blocks_create]
+         */
+        suspend operator fun invoke(
+            user: String,
+            otherUser: String
+        ): Response<BlockCreateResponse>
+
+        @Serializable
+        data class BlockCreateResponse(
+            val block: Block
+        )
+
+        /**
+         * [https://dev.groupme.com/docs/v3#blocks_post_delete]
+         */
+        suspend fun delete(
+            user: String,
+            otherUser: String
+        ): Response<Nothing>
+    }
 }
