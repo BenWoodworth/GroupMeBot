@@ -218,10 +218,10 @@ interface GroupMeApiV3 {
                     /**
                      * [https://dev.groupme.com/docs/v3#members_update]
                      */
-                    suspend fun update(request: UpdateRequest): Response<Member>
+                    suspend fun update(request: MemberUpdateRequest): Response<Member>
 
                     @Serializable
-                    data class UpdateRequest(
+                    data class MemberUpdateRequest(
                         val membership: Membership
                     ) {
                         @Serializable
@@ -244,10 +244,10 @@ interface GroupMeApiV3 {
                         /**
                          * [https://dev.groupme.com/docs/v3#members_results]
                          */
-                        suspend operator fun invoke(): Response<ResultsResponse>
+                        suspend operator fun invoke(): Response<ResultResponse>
 
                         @Serializable
-                        data class ResultsResponse(
+                        data class ResultResponse(
                             val messages: List<GroupMessage>
                         )
                     }
@@ -267,10 +267,10 @@ interface GroupMeApiV3 {
                     since_id: String? = null,
                     after_id: String? = null,
                     limit: Int? = null
-                ): Response<IndexResponse>
+                ): Response<GroupMessagesIndexResponse>
 
                 @Serializable
-                data class IndexResponse(
+                data class GroupMessagesIndexResponse(
                     val count: Int,
                     val messages: List<GroupMessage>
                 )
@@ -279,11 +279,11 @@ interface GroupMeApiV3 {
                  * [https://dev.groupme.com/docs/v3#messages_create]
                  */
                 suspend fun invoke(
-                    request: CreateRequest
-                ): Response<CreateResponse>
+                    request: GroupMessagesCreateRequest
+                ): Response<GroupMessagesCreateResponse>
 
                 @Serializable
-                data class CreateRequest(
+                data class GroupMessagesCreateRequest(
                     val message: CreateRequestMessage
                 ) {
                     @Serializable
@@ -295,10 +295,31 @@ interface GroupMeApiV3 {
                 }
 
                 @Serializable
-                data class CreateResponse(
+                data class GroupMessagesCreateResponse(
                     val message: GroupMessage
                 )
             }
+        }
+
+
+        val likes: GroupLikesApi
+
+        interface GroupLikesApi {
+
+            data class GroupLikesResponse(
+                val messages: List<GroupMessage>
+            )
+
+            /**
+             * [https://dev.groupme.com/docs/v3#leaderboard_index]
+             */
+            suspend operator fun invoke(
+                period: String
+            ): Response<GroupLikesResponse>
+
+            suspend fun mine(): Response<GroupLikesResponse>
+
+            suspend fun for_me(): Response<GroupLikesResponse>
         }
     }
 
@@ -342,7 +363,7 @@ interface GroupMeApiV3 {
          */
         suspend operator fun invoke(
             request: CreateRequest
-        ): Response<CreateResponse>
+        ): Response<DirectMessageCreateResponse>
 
         @Serializable
         data class CreateRequest(
@@ -358,7 +379,7 @@ interface GroupMeApiV3 {
         }
 
         @Serializable
-        data class  CreateResponse(
+        data class  DirectMessageCreateResponse(
             val direct_message: DirectMessage
         )
     }
