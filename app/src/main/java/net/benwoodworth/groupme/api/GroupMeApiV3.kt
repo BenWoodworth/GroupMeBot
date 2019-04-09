@@ -278,9 +278,7 @@ interface GroupMeApiV3 {
                 /**
                  * [https://dev.groupme.com/docs/v3#messages_create]
                  */
-                suspend fun invoke(
-                    request: GroupMessagesCreateRequest
-                ): Response<GroupMessagesCreateResponse>
+                suspend fun invoke(request: GroupMessagesCreateRequest): Response<GroupMessagesCreateResponse>
 
                 @Serializable
                 data class GroupMessagesCreateRequest(
@@ -313,9 +311,7 @@ interface GroupMeApiV3 {
             /**
              * [https://dev.groupme.com/docs/v3#leaderboard_index]
              */
-            suspend operator fun invoke(
-                period: String
-            ): Response<GroupLikesResponse>
+            suspend operator fun invoke(period: String): Response<GroupLikesResponse>
 
             suspend fun mine(): Response<GroupLikesResponse>
 
@@ -361,9 +357,7 @@ interface GroupMeApiV3 {
         /**
          * [https://dev.groupme.com/docs/v3#direct_messages_create]
          */
-        suspend operator fun invoke(
-            request: CreateRequest
-        ): Response<DirectMessageCreateResponse>
+        suspend operator fun invoke(request: CreateRequest): Response<DirectMessageCreateResponse>
 
         @Serializable
         data class CreateRequest(
@@ -379,7 +373,7 @@ interface GroupMeApiV3 {
         }
 
         @Serializable
-        data class  DirectMessageCreateResponse(
+        data class DirectMessageCreateResponse(
             val direct_message: DirectMessage
         )
     }
@@ -408,5 +402,67 @@ interface GroupMeApiV3 {
                 suspend fun unlike(): Response<Nothing>
             }
         }
+    }
+
+
+    val bots: BotsApi
+
+    interface BotsApi {
+
+        @Serializable
+        data class Bot(
+            val bot_id: String,
+            val group_id: String,
+            val name: String,
+            val avatar_url: String,
+            val callback_url: String,
+            val dm_notification: Boolean
+        )
+
+        /**
+         * [https://dev.groupme.com/docs/v3#bots_create]
+         */
+        suspend operator fun invoke(request: BotsCreateRequest): Response<Bot>
+
+        @Serializable
+        data class BotsCreateRequest(
+            val bot: BotsCreateRequestBot
+        ) {
+            @Serializable
+            data class BotsCreateRequestBot(
+                val name: String,
+                val group_id: String,
+                val avatar_url: String? = null,
+                val callback_url: String? = null,
+                val dm_notification: Boolean? = null
+            )
+        }
+
+        /**
+         * [https://dev.groupme.com/docs/v3#bots_post]
+         */
+        suspend fun post(request: BotsPostRequest): Response<Nothing>
+
+        @Serializable
+        data class BotsPostRequest(
+            val bot_id: String,
+            val text: String,
+            val picture_url: String? = null
+        )
+
+        /**
+         * [https://dev.groupme.com/docs/v3#bots_index]
+         */
+        suspend fun invoke(): Response<List<Bot>>
+
+        /**
+         * [https://dev.groupme.com/docs/v3#bots_destroy]
+         */
+        suspend fun destroy(request: BotsDestroyRequest): Response<Nothing>
+
+        @Serializable
+        data class BotsDestroyRequest(
+            val bot_id: String
+        )
     }
 }
