@@ -24,19 +24,15 @@ import java.net.URLEncoder
 import kotlin.coroutines.suspendCoroutine
 
 internal class GroupMe(
-    val accessToken: String
+    private val accessToken: String
 ) : GroupMeApiV3 {
 
-    private companion object {
-        const val BASE_URL = "https://api.groupme.com/v3"
+    private val apiUrlBase = "https://api.groupme.com/v3"
 
-        val json = Json(
-            encodeDefaults = false
-        )
+    private val json = Json(encodeDefaults = false)
 
-        fun String.urlEncoded(): String {
-            return URLEncoder.encode(this)
-        }
+    private fun String.urlEncoded(): String {
+        return URLEncoder.encode(this)
     }
 
     private object NothingSerializer : KSerializer<Nothing> {
@@ -66,15 +62,15 @@ internal class GroupMe(
         return suspendCoroutine { continuation ->
             try {
                 @Suppress("UNCHECKED_CAST")
-                val tokenParams = parameters
+                val paramsWithToken = parameters
                     .filterValues { it != null }
                     .toMutableMap() as MutableMap<String, String>
 
-                tokenParams += "token" to accessToken
+                paramsWithToken += "token" to accessToken
 
                 val httpResponse = khttp.get(
-                    url = "$BASE_URL$url",
-                    params = tokenParams
+                    url = url,
+                    params = paramsWithToken
                 )
 
                 val response = json.parse(
@@ -99,11 +95,11 @@ internal class GroupMe(
         return suspendCoroutine { continuation ->
             try {
                 @Suppress("UNCHECKED_CAST")
-                val tokenParams = parameters
+                val paramsWithToken = parameters
                     .filterValues { it != null }
                     .toMutableMap() as MutableMap<String, String>
 
-                tokenParams += "token" to accessToken
+                paramsWithToken += "token" to accessToken
 
                 val requestJson = request?.let {
                     json.stringify(
@@ -113,8 +109,8 @@ internal class GroupMe(
                 }
 
                 val httpResponse = khttp.post(
-                    url = "$BASE_URL$url",
-                    params = tokenParams,
+                    url = url,
+                    params = paramsWithToken,
                     json = requestJson
                 )
 
@@ -174,7 +170,7 @@ internal class GroupMe(
     }
 
     override val groups = object : GroupsApi {
-        val groupsUrlBase = "/groups"
+        private val groupsUrlBase = "$apiUrlBase/groups"
 
         override suspend fun invoke(
             page: Int?,
@@ -209,7 +205,7 @@ internal class GroupMe(
         }
 
         override fun get(id: String) = object : GroupApi {
-            val groupUrlBase = "$groupsUrlBase/${id.urlEncoded()}"
+            private val groupUrlBase = "$groupsUrlBase/${id.urlEncoded()}"
 
             override suspend fun invoke(): Response<Group> {
                 return apiGet(
@@ -232,7 +228,7 @@ internal class GroupMe(
             }
 
             override val join = object : JoinApi {
-                val joinUrlBase = "$groupUrlBase/join"
+                private val joinUrlBase = "$groupUrlBase/join"
 
                 override suspend fun invoke(): Response<Group> {
                     return apiPost(
@@ -242,7 +238,7 @@ internal class GroupMe(
                 }
 
                 override fun get(shareToken: String) = object : JoinWithTokenApi {
-                    val shareJoinUrlBase = "$joinUrlBase/${shareToken.urlEncoded()}"
+                    private val shareJoinUrlBase = "$joinUrlBase/${shareToken.urlEncoded()}"
 
                     override suspend fun invoke(): Response<GroupJoinResponse> {
                         return apiPost(
@@ -254,7 +250,7 @@ internal class GroupMe(
             }
 
             override val members = object : MembersApi {
-                val membersUrlBase = "$groupUrlBase/members"
+                private val membersUrlBase = "$groupUrlBase/members"
 
                 override suspend fun add(request: MemberAddRequest): Response<MemberAddResponse> {
                     return apiPost(
@@ -266,7 +262,7 @@ internal class GroupMe(
                 }
 
                 override fun get(id: String) = object : MemberApi {
-                    val memberIdUrlBase = "$membersUrlBase/${id.urlEncoded()}"
+                    private val memberIdUrlBase = "$membersUrlBase/${id.urlEncoded()}"
 
                     override suspend fun remove(): Response<Nothing> {
                         return apiPost("$memberIdUrlBase/remove")
@@ -283,10 +279,10 @@ internal class GroupMe(
                 }
 
                 override val results = object : ResultsApi {
-                    val resultUrlBase = "$membersUrlBase/results"
+                    private val resultUrlBase = "$membersUrlBase/results"
 
                     override fun get(resultsId: String) = object : ResultApi {
-                        val resultIdUrlBase = "$resultUrlBase/${resultsId.urlEncoded()}"
+                        private val resultIdUrlBase = "$resultUrlBase/${resultsId.urlEncoded()}"
 
                         override suspend fun invoke(): Response<ResultResponse> {
                             return apiGet(
@@ -299,7 +295,7 @@ internal class GroupMe(
             }
 
             override val messages = object : GroupMessagesApi {
-                val messagesUrlBase = "$groupUrlBase/messages"
+                private val messagesUrlBase = "$groupUrlBase/messages"
 
                 override suspend fun invoke(
                     before_id: String?,
@@ -333,7 +329,7 @@ internal class GroupMe(
         }
 
         override val likes = object : GroupLikesApi {
-            val likesUrlBase = "$groupsUrlBase/likes"
+            private val likesUrlBase = "$groupsUrlBase/likes"
 
             override suspend fun invoke(period: String): Response<GroupLikesResponse> {
                 return apiGet(
@@ -362,7 +358,7 @@ internal class GroupMe(
     }
 
     override val direct_messages = object : DirectMessagesApi {
-        val directMessagesUrlBase = "/direct_messages"
+        private val directMessagesUrlBase = "$apiUrlBase/direct_messages"
 
         override suspend fun invoke(
             other_user_id: String,
@@ -393,13 +389,13 @@ internal class GroupMe(
     }
 
     override val messages = object : MessagesApi {
-        val messagesUrlBase = "/messages"
+        private val messagesUrlBase = "$apiUrlBase/messages"
 
         override fun get(conversation_id: String) = object : WithConversationIdApi {
-            val conversationIdUrlBase = "$messagesUrlBase/${conversation_id.urlEncoded()}"
+            private val conversationIdUrlBase = "$messagesUrlBase/${conversation_id.urlEncoded()}"
 
             override fun get(message_id: String) = object : WithMessageIdApi {
-                val messageIdUrlBase = "$conversationIdUrlBase/${message_id.urlEncoded()}"
+                private val messageIdUrlBase = "$conversationIdUrlBase/${message_id.urlEncoded()}"
 
                 override suspend fun like(): Response<Nothing> {
                     return apiPost("$messageIdUrlBase/like")
@@ -413,7 +409,7 @@ internal class GroupMe(
     }
 
     override val bots = object : BotsApi {
-        val botsUrlBase = "/bots"
+        private val botsUrlBase = "$apiUrlBase/bots"
 
         override suspend fun invoke(request: BotCreateRequest): Response<Bot> {
             return apiPost(
@@ -445,7 +441,7 @@ internal class GroupMe(
     }
 
     override val users = object : UsersApi {
-        val usersUrlBase = "/users"
+        private val usersUrlBase = "$apiUrlBase/users"
 
         override suspend fun me(): Response<User> {
             return apiGet(
@@ -464,7 +460,7 @@ internal class GroupMe(
         }
 
         override val sms_mode = object : SmsModeApi {
-            val smsModeUrlBase = "$usersUrlBase/sms_mode"
+            private val smsModeUrlBase = "$usersUrlBase/sms_mode"
 
             override suspend fun invoke(request: SmsModeCreateRequest): Response<Nothing> {
                 return apiPost(
@@ -481,7 +477,7 @@ internal class GroupMe(
     }
 
     override val blocks = object : BlocksApi {
-        val blocksUrlBase = "/blocks"
+        private val blocksUrlBase = "$apiUrlBase/blocks"
 
         override suspend fun invoke(user: String): Response<BlocksIndexResponse> {
             return apiGet(
