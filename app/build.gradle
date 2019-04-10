@@ -49,4 +49,6 @@ dependencies {
 
     implementation "org.jetbrains.kotlin:kotlin-stdlib:$kotlin_version"
     implementation "org.jetbrains.kotlinx:kotlinx-serialization-runtime:0.10.0"
+    implementation "org.jetbrains.kotlinx:kotlinx-coroutines-core:1.2.0-alpha-2"
+    implementation "khttp:khttp:0.1.0"
 }

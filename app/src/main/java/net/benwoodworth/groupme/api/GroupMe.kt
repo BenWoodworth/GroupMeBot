@@ -1,8 +1,87 @@
 package net.benwoodworth.groupme.api
 
+import kotlinx.serialization.KSerializer
+import kotlinx.serialization.json.Json
+import kotlin.coroutines.suspendCoroutine
+
 class GroupMe(
     val accessToken: String
 ) : GroupMeApiV3 {
+
+    private companion object {
+        const val BASE_URL = "https://api.groupme.com/v3"
+
+        val json = Json(
+            encodeDefaults = false
+        )
+    }
+
+    private suspend inline fun <TResponse : Any> get(
+        url: String,
+        parameters: Map<String, String?> = emptyMap(),
+        responseSerializer: KSerializer<TResponse>
+    ): GroupMeApiV3.Response<TResponse> {
+        return suspendCoroutine { continuation ->
+            try {
+                @Suppress("UNCHECKED_CAST")
+                val tokenParams = parameters
+                    .filterValues { it != null }
+                    .toMutableMap() as MutableMap<String, String>
+
+                tokenParams += "token" to accessToken
+
+                val httpResponse = khttp.get(
+                    url = "$BASE_URL$url",
+                    params = tokenParams
+                )
+
+                val response = json.parse(
+                    GroupMeApiV3.Response.serializer(responseSerializer),
+                    httpResponse.text
+                )
+
+                continuation.resumeWith(Result.success(response))
+            } catch (throwable: Throwable) {
+                continuation.resumeWith(Result.failure(throwable))
+            }
+        }
+    }
+
+    private suspend inline fun <TRequest : Any, TResponse : Any> post(
+        url: String,
+        request: TRequest? = null,
+        requestSerializer: KSerializer<TRequest>,
+        responseSerializer: KSerializer<TResponse>
+    ): GroupMeApiV3.Response<TResponse> {
+        return suspendCoroutine { continuation ->
+            try {
+                @Suppress("UNCHECKED_CAST")
+                val tokenParams = mapOf("token" to accessToken)
+
+                val requestJson = request?.let {
+                    json.stringify(
+                        requestSerializer,
+                        request
+                    )
+                }
+
+                val httpResponse = khttp.post(
+                    url = "$BASE_URL$url",
+                    params = tokenParams,
+                    json = requestJson
+                )
+
+                val response = json.parse(
+                    GroupMeApiV3.Response.serializer(responseSerializer),
+                    httpResponse.text
+                )
+
+                continuation.resumeWith(Result.success(response))
+            } catch (throwable: Throwable) {
+                continuation.resumeWith(Result.failure(throwable))
+            }
+        }
+    }
 
     override val groups = object : GroupMeApiV3.GroupsApi {
 
