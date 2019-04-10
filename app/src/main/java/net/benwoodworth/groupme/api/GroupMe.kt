@@ -8,6 +8,7 @@ import net.benwoodworth.groupme.api.GroupMeApiV3.BotsApi.*
 import net.benwoodworth.groupme.api.GroupMeApiV3.DirectMessagesApi.*
 import net.benwoodworth.groupme.api.GroupMeApiV3.GroupsApi.*
 import net.benwoodworth.groupme.api.GroupMeApiV3.GroupsApi.GroupApi.*
+import net.benwoodworth.groupme.api.GroupMeApiV3.GroupsApi.GroupApi.GroupMessagesApi.*
 import net.benwoodworth.groupme.api.GroupMeApiV3.GroupsApi.GroupApi.JoinApi.GroupJoinResponse
 import net.benwoodworth.groupme.api.GroupMeApiV3.GroupsApi.GroupApi.JoinApi.JoinWithTokenApi
 import net.benwoodworth.groupme.api.GroupMeApiV3.GroupsApi.GroupApi.MembersApi.*
@@ -267,8 +268,38 @@ internal class GroupMe(
                 }
             }
 
-            override val messages: GroupMessagesApi
-                get() = TODO("not implemented")
+            override val messages = object : GroupMessagesApi {
+                val messagesUrlBase = "$groupUrlBase/messages"
+
+                override suspend fun invoke(
+                    before_id: String?,
+                    since_id: String?,
+                    after_id: String?,
+                    limit: Int?
+                ): Response<GroupMessagesIndexResponse> {
+                    return apiGet(
+                        url = messagesUrlBase,
+                        parameters = mapOf(
+                            "before_id" to before_id,
+                            "since_id" to since_id,
+                            "after_id" to after_id,
+                            "limit" to limit?.toString()
+                        ),
+                        responseSerializer = GroupMessagesIndexResponse.serializer()
+                    )
+                }
+
+                override suspend fun invoke(
+                    request: GroupMessageCreateRequest
+                ): Response<GroupMessageCreateResponse> {
+                    return apiPost(
+                        url = messagesUrlBase,
+                        request = request,
+                        requestSerializer = GroupMessageCreateRequest.serializer(),
+                        responseSerializer = GroupMessageCreateResponse.serializer()
+                    )
+                }
+            }
         }
 
         override val likes = object : GroupLikesApi {
