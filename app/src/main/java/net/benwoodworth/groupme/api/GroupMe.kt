@@ -1,11 +1,12 @@
 package net.benwoodworth.groupme.api
 
-import kotlinx.serialization.KSerializer
+import kotlinx.serialization.*
+import kotlinx.serialization.internal.NullableSerializer
 import kotlinx.serialization.json.Json
-import kotlinx.serialization.list
+import java.net.URLEncoder
 import kotlin.coroutines.suspendCoroutine
 
-class GroupMe(
+internal class GroupMe(
     val accessToken: String
 ) : GroupMeApiV3 {
 
@@ -15,9 +16,35 @@ class GroupMe(
         val json = Json(
             encodeDefaults = false
         )
+
+        fun String.urlEncoding(): String {
+            return URLEncoder.encode(this)
+        }
     }
 
-    private suspend inline fun <TResponse : Any> apiGet(
+    private object EmptySerializer : KSerializer<Nothing> {
+
+        override val descriptor = object : SerialDescriptor {
+            override val kind = UnionKind.OBJECT
+            override val name = "EmptySerializer"
+
+            override fun getElementIndex(name: String) = emptyError()
+            override fun getElementName(index: Int) = emptyError()
+            override fun isElementOptional(index: Int) = emptyError()
+        }
+
+        private fun emptyError(): Nothing {
+            throw IllegalStateException("EmptySerializer cannot serialize elements")
+        }
+
+        override fun deserialize(decoder: Decoder) = emptyError()
+        override fun serialize(encoder: Encoder, obj: Nothing) = emptyError()
+
+        @Suppress("UNCHECKED_CAST")
+        operator fun <T> invoke(): T = this as T
+    }
+
+    private suspend fun <TResponse : Any> apiGet(
         url: String,
         parameters: Map<String, String?> = emptyMap(),
         responseSerializer: KSerializer<TResponse>
@@ -48,11 +75,11 @@ class GroupMe(
         }
     }
 
-    private suspend inline fun <TRequest : Any, TResponse : Any> apiPost(
+    private suspend fun <TRequest : Any, TResponse : Any> apiPost(
         url: String,
         request: TRequest? = null,
-        requestSerializer: KSerializer<TRequest>,
-        responseSerializer: KSerializer<TResponse>
+        requestSerializer: KSerializer<TRequest> = EmptySerializer(),
+        responseSerializer: KSerializer<TResponse> = EmptySerializer()
     ): GroupMeApiV3.Response<TResponse> {
         return suspendCoroutine { continuation ->
             try {
@@ -71,6 +98,7 @@ class GroupMe(
                     params = tokenParams,
                     json = requestJson
                 )
+
 
                 val response = json.parse(
                     GroupMeApiV3.Response.serializer(responseSerializer),
@@ -120,8 +148,63 @@ class GroupMe(
             )
         }
 
-        override fun get(id: String): GroupMeApiV3.GroupsApi.GroupApi {
-            TODO("not implemented")
+        override fun get(id: String) = object : GroupMeApiV3.GroupsApi.GroupApi {
+            val groupUrlBase = "/groups/${id.urlEncoding()}"
+
+            override suspend fun invoke(): GroupMeApiV3.Response<GroupMeApiV3.GroupsApi.Group> {
+                return apiGet(
+                    url = groupUrlBase,
+                    responseSerializer = GroupMeApiV3.GroupsApi.Group.serializer()
+                )
+            }
+
+            override suspend fun update(
+                request: GroupMeApiV3.GroupsApi.GroupApi.GroupUpdateRequest
+            ): GroupMeApiV3.Response<GroupMeApiV3.GroupsApi.Group> {
+                return apiPost(
+                    url = groupUrlBase,
+                    request = request,
+                    requestSerializer = GroupMeApiV3.GroupsApi.GroupApi.GroupUpdateRequest.serializer(),
+                    responseSerializer = GroupMeApiV3.GroupsApi.Group.serializer()
+                )
+            }
+
+            override suspend fun destroy(): GroupMeApiV3.Response<Nothing> {
+                return apiPost(
+                    url = groupUrlBase,
+                    request = null
+                )
+            }
+
+            override val join = object : GroupMeApiV3.GroupsApi.GroupApi.JoinApi {
+                val joinUrlBase = "$groupUrlBase/join"
+
+                override suspend fun invoke(): GroupMeApiV3.Response<GroupMeApiV3.GroupsApi.Group> {
+                    return apiPost(
+                        url = joinUrlBase,
+                        request = null,
+                        responseSerializer = GroupMeApiV3.GroupsApi.Group.serializer()
+                    )
+                }
+
+                override fun get(shareToken: String) =
+                    object : GroupMeApiV3.GroupsApi.GroupApi.JoinApi.JoinWithTokenApi {
+                        val shareJoinUrlBase = "$joinUrlBase/${shareToken.urlEncoding()}"
+
+                        override suspend fun invoke(): GroupMeApiV3.Response<GroupMeApiV3.GroupsApi.GroupApi.JoinApi.JoinResponse> {
+                            return apiPost(
+                                url = shareJoinUrlBase,
+                                request = null,
+                                responseSerializer = GroupMeApiV3.GroupsApi.GroupApi.JoinApi.JoinResponse.serializer()
+                            )
+                        }
+                    }
+            }
+
+            override val members: GroupMeApiV3.GroupsApi.GroupApi.MembersApi
+                get() = TODO("not implemented")
+            override val messages: GroupMeApiV3.GroupsApi.GroupApi.GroupMessagesApi
+                get() = TODO("not implemented")
         }
 
         override val likes = object : GroupMeApiV3.GroupsApi.GroupLikesApi {

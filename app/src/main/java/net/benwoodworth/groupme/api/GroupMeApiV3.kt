@@ -12,7 +12,7 @@ interface GroupMeApiV3 {
      */
     @Serializable
     data class Response<T : Any>(
-        val response: T?,
+        val response: T? = null,
         val meta: Meta? = null
     ) {
         @Serializable
@@ -137,18 +137,21 @@ interface GroupMeApiV3 {
             /**
              * [https://dev.groupme.com/docs/v3#groups_show]
              */
-            suspend operator fun invoke(): Response<List<Group>>
+            suspend operator fun invoke(): Response<Group>
 
             /**
              * [https://dev.groupme.com/docs/v3#groups_update]
              */
-            suspend fun update(
-                name: String? = null,
-                description: String? = null,
-                image_url: String? = null,
-                office_mode: Boolean? = null,
-                share: Boolean? = null
-            ): Response<Group>
+            suspend fun update(request: GroupUpdateRequest): Response<Group>
+
+            @Serializable
+            data class GroupUpdateRequest(
+                val name: String? = null,
+                val description: String? = null,
+                val image_url: String? = null,
+                val office_mode: Boolean? = null,
+                val share: Boolean? = null
+            )
 
             /**
              * [https://dev.groupme.com/docs/v3#groups_destroy]
