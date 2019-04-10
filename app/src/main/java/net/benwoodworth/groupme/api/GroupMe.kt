@@ -333,19 +333,33 @@ internal class GroupMe(
     }
 
     override val direct_messages = object : DirectMessagesApi {
+        val directMessagesUrlBase = "/direct_messages"
 
         override suspend fun invoke(
             other_user_id: String,
             before_id: String?,
             since_id: String?
         ): Response<IndexResponse> {
-            TODO("not implemented")
+            return apiGet(
+                url = directMessagesUrlBase,
+                parameters = mapOf(
+                    "other_user_id" to other_user_id,
+                    "before_id" to before_id,
+                    "since_id" to since_id
+                ),
+                responseSerializer = IndexResponse.serializer()
+            )
         }
 
         override suspend fun invoke(
             request: DirectMessageCreateRequest
         ): Response<DirectMessageCreateResponse> {
-            TODO("not implemented")
+            return apiPost(
+                url = directMessagesUrlBase,
+                request = request,
+                requestSerializer = DirectMessageCreateRequest.serializer(),
+                responseSerializer = DirectMessageCreateResponse.serializer()
+            )
         }
     }
 
