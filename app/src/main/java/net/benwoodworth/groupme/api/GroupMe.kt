@@ -17,6 +17,7 @@ import net.benwoodworth.groupme.api.GroupMeApiV3.GroupsApi.GroupApi.MembersApi.R
 import net.benwoodworth.groupme.api.GroupMeApiV3.GroupsApi.GroupApi.MembersApi.ResultsApi.ResultApi.ResultResponse
 import net.benwoodworth.groupme.api.GroupMeApiV3.GroupsApi.GroupLikesApi.GroupLikesResponse
 import net.benwoodworth.groupme.api.GroupMeApiV3.MessagesApi.WithConversationIdApi
+import net.benwoodworth.groupme.api.GroupMeApiV3.MessagesApi.WithConversationIdApi.WithMessageIdApi
 import net.benwoodworth.groupme.api.GroupMeApiV3.UsersApi.*
 import net.benwoodworth.groupme.api.GroupMeApiV3.UsersApi.SmsModeApi.SmsModeCreateRequest
 import java.net.URLEncoder
@@ -364,9 +365,22 @@ internal class GroupMe(
     }
 
     override val messages = object : MessagesApi {
+        val messagesUrlBase = "/messages"
 
-        override fun get(conversation_id: String): WithConversationIdApi {
-            TODO("not implemented")
+        override fun get(conversation_id: String) = object : WithConversationIdApi {
+            val conversationIdUrlBase = "$messagesUrlBase/${conversation_id.urlEncoded()}"
+
+            override fun get(message_id: String) = object : WithMessageIdApi {
+                val messageIdUrlBase = "$conversationIdUrlBase/${message_id.urlEncoded()}"
+
+                override suspend fun like(): Response<Nothing> {
+                    return apiPost("$messageIdUrlBase/like")
+                }
+
+                override suspend fun unlike(): Response<Nothing> {
+                    return apiPost("$messageIdUrlBase/unlike")
+                }
+            }
         }
     }
 
