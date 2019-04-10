@@ -2,6 +2,7 @@ package net.benwoodworth.groupme.api
 
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.list
 import kotlin.coroutines.suspendCoroutine
 
 class GroupMe(
@@ -16,7 +17,7 @@ class GroupMe(
         )
     }
 
-    private suspend inline fun <TResponse : Any> get(
+    private suspend inline fun <TResponse : Any> apiGet(
         url: String,
         parameters: Map<String, String?> = emptyMap(),
         responseSerializer: KSerializer<TResponse>
@@ -47,7 +48,7 @@ class GroupMe(
         }
     }
 
-    private suspend inline fun <TRequest : Any, TResponse : Any> post(
+    private suspend inline fun <TRequest : Any, TResponse : Any> apiPost(
         url: String,
         request: TRequest? = null,
         requestSerializer: KSerializer<TRequest>,
@@ -89,21 +90,34 @@ class GroupMe(
             page: Int?,
             per_page: Int?,
             omit: List<String>?
-        ): GroupMeApiV3.Response<List<GroupMeApiV3.Group>> {
-            TODO("not implemented")
+        ): GroupMeApiV3.Response<List<GroupMeApiV3.GroupsApi.Group>> {
+            return apiGet(
+                url = "/groups",
+                parameters = mapOf(
+                    "page" to page?.toString(),
+                    "per_page" to per_page?.toString(),
+                    "omit" to omit?.joinToString(",")
+                ),
+                responseSerializer = GroupMeApiV3.GroupsApi.Group.serializer().list
+            )
         }
 
-        override suspend fun former(): GroupMeApiV3.Response<List<GroupMeApiV3.Group>> {
-            TODO("not implemented")
+        override suspend fun former(): GroupMeApiV3.Response<List<GroupMeApiV3.GroupsApi.Group>> {
+            return apiGet(
+                url = "/groups/former",
+                responseSerializer = GroupMeApiV3.GroupsApi.Group.serializer().list
+            )
         }
 
-        override suspend fun create(
-            name: String,
-            description: String?,
-            image_url: String?,
-            share: Boolean?
-        ): GroupMeApiV3.Response<GroupMeApiV3.Group> {
-            TODO("not implemented")
+        override suspend fun invoke(
+            request: GroupMeApiV3.GroupsApi.GroupCreateRequest
+        ): GroupMeApiV3.Response<GroupMeApiV3.GroupsApi.Group> {
+            return apiPost(
+                url = "/groups",
+                request = request,
+                requestSerializer = GroupMeApiV3.GroupsApi.GroupCreateRequest.serializer(),
+                responseSerializer = GroupMeApiV3.GroupsApi.Group.serializer()
+            )
         }
 
         override fun get(id: String): GroupMeApiV3.GroupsApi.GroupApi {

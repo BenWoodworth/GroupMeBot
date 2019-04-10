@@ -23,50 +23,6 @@ interface GroupMeApiV3 {
     }
 
     @Serializable
-    data class Group(
-        val id: String,
-        val name: String,
-        val type: String,
-        val description: String,
-        val image_url: String,
-        val creator_user_id: String,
-        val created_at: Long,
-        val updated_at: Long,
-        val members: List<Member>?,
-        val share_url: String,
-        val messages: Messages
-    ) {
-        @Serializable
-        data class Messages(
-            val count: Int,
-            val last_message_id: String,
-            val last_message_creates_at: String,
-            val preview: Preview
-        ) {
-            @Serializable
-            data class Preview(
-                val nickname: String,
-                val text: String,
-                val image_url: String,
-                val attachments: List<Attachment>
-            )
-        }
-    }
-
-    @Serializable
-    data class Member(
-        val id: String,
-        val user_id: String,
-        val nickname: String,
-        val muted: Boolean,
-        val image_url: String,
-        val autokicked: Boolean,
-        val app_installed: Boolean,
-        val roles: List<String>,
-        val state: String
-    )
-
-    @Serializable
     data class Attachment(
         val type: String,
         val url: String? = null,
@@ -86,6 +42,50 @@ interface GroupMeApiV3 {
     val groups: GroupsApi
 
     interface GroupsApi {
+
+        @Serializable
+        data class Group(
+            val id: String,
+            val name: String,
+            val type: String,
+            val description: String,
+            val image_url: String,
+            val creator_user_id: String,
+            val created_at: Long,
+            val updated_at: Long,
+            val members: List<Member>?,
+            val share_url: String,
+            val messages: Messages
+        ) {
+            @Serializable
+            data class Messages(
+                val count: Int,
+                val last_message_id: String,
+                val last_message_creates_at: String,
+                val preview: Preview
+            ) {
+                @Serializable
+                data class Preview(
+                    val nickname: String,
+                    val text: String,
+                    val image_url: String,
+                    val attachments: List<Attachment>
+                )
+            }
+        }
+
+        @Serializable
+        data class Member(
+            val id: String,
+            val user_id: String,
+            val nickname: String,
+            val muted: Boolean,
+            val image_url: String,
+            val autokicked: Boolean,
+            val app_installed: Boolean,
+            val roles: List<String>,
+            val state: String
+        )
 
         @Serializable
         data class GroupMessage(
@@ -119,12 +119,15 @@ interface GroupMeApiV3 {
         /**
          * [https://dev.groupme.com/docs/v3#groups_create]
          */
-        suspend fun create(
-            name: String,
-            description: String? = null,
-            image_url: String? = null,
-            share: Boolean? = null
-        ): Response<Group>
+        suspend operator fun invoke(request: GroupCreateRequest): Response<Group>
+
+        @Serializable
+        data class GroupCreateRequest(
+            val name:String,
+            val description: String? = null,
+            val image_url: String? = null,
+            val share: Boolean? = null
+        )
 
 
         operator fun get(id: String): GroupApi
