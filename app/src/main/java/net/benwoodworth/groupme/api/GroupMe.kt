@@ -417,23 +417,37 @@ internal class GroupMe(
     }
 
     override val users = object : UsersApi {
+        val usersUrlBase = "/users"
 
         override suspend fun me(): Response<User> {
-            TODO("not implemented")
+            return apiGet(
+                url = "$usersUrlBase/me",
+                responseSerializer = User.serializer()
+            )
         }
 
         override suspend fun update(request: UserUpdateRequest): Response<User> {
-            TODO("not implemented")
+            return apiPost(
+                url = "$usersUrlBase/update",
+                request = request,
+                requestSerializer = UserUpdateRequest.serializer(),
+                responseSerializer = User.serializer()
+            )
         }
 
         override val sms_mode = object : SmsModeApi {
+            val smsModeUrlBase = "$usersUrlBase/sms_mode"
 
             override suspend fun invoke(request: SmsModeCreateRequest): Response<Nothing> {
-                TODO("not implemented")
+                return apiPost(
+                    url = smsModeUrlBase,
+                    request = request,
+                    requestSerializer = SmsModeCreateRequest.serializer()
+                )
             }
 
             override suspend fun delete(): Response<Nothing> {
-                TODO("not implemented")
+                return apiPost(smsModeUrlBase)
             }
         }
     }
