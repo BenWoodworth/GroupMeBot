@@ -10,6 +10,10 @@ import net.benwoodworth.groupme.api.GroupMeApiV3.GroupsApi.*
 import net.benwoodworth.groupme.api.GroupMeApiV3.GroupsApi.GroupApi.*
 import net.benwoodworth.groupme.api.GroupMeApiV3.GroupsApi.GroupApi.JoinApi.GroupJoinResponse
 import net.benwoodworth.groupme.api.GroupMeApiV3.GroupsApi.GroupApi.JoinApi.JoinWithTokenApi
+import net.benwoodworth.groupme.api.GroupMeApiV3.GroupsApi.GroupApi.MembersApi.*
+import net.benwoodworth.groupme.api.GroupMeApiV3.GroupsApi.GroupApi.MembersApi.MemberApi.MemberUpdateRequest
+import net.benwoodworth.groupme.api.GroupMeApiV3.GroupsApi.GroupApi.MembersApi.ResultsApi.ResultApi
+import net.benwoodworth.groupme.api.GroupMeApiV3.GroupsApi.GroupApi.MembersApi.ResultsApi.ResultApi.ResultResponse
 import net.benwoodworth.groupme.api.GroupMeApiV3.GroupsApi.GroupLikesApi.GroupLikesResponse
 import net.benwoodworth.groupme.api.GroupMeApiV3.MessagesApi.WithConversationIdApi
 import net.benwoodworth.groupme.api.GroupMeApiV3.UsersApi.*
@@ -28,16 +32,16 @@ internal class GroupMe(
             encodeDefaults = false
         )
 
-        fun String.urlEncoding(): String {
+        fun String.urlEncoded(): String {
             return URLEncoder.encode(this)
         }
     }
 
-    private object EmptySerializer : KSerializer<Nothing> {
+    private object NothingSerializer : KSerializer<Nothing> {
 
         override val descriptor = object : SerialDescriptor {
             override val kind = UnionKind.OBJECT
-            override val name = "EmptySerializer"
+            override val name = "NothingSerializer"
 
             override fun getElementIndex(name: String) = emptyError()
             override fun getElementName(index: Int) = emptyError()
@@ -45,14 +49,11 @@ internal class GroupMe(
         }
 
         private fun emptyError(): Nothing {
-            throw IllegalStateException("EmptySerializer cannot serialize elements")
+            throw IllegalStateException("NothingSerializer cannot serialize elements")
         }
 
         override fun deserialize(decoder: Decoder) = emptyError()
         override fun serialize(encoder: Encoder, obj: Nothing) = emptyError()
-
-        @Suppress("UNCHECKED_CAST", "NOTHING_TO_INLINE")
-        inline operator fun <T> invoke(): T = this as T
     }
 
     private suspend fun <TResponse : Any> apiGet(
@@ -86,11 +87,11 @@ internal class GroupMe(
         }
     }
 
-    private suspend fun <TRequest : Any, TResponse : Any> apiPost(
+    private suspend fun <TRequest, TResponse> apiPost(
         url: String,
-        request: TRequest? = null,
-        requestSerializer: KSerializer<TRequest> = EmptySerializer(),
-        responseSerializer: KSerializer<TResponse> = EmptySerializer()
+        request: TRequest?,
+        requestSerializer: KSerializer<TRequest>,
+        responseSerializer: KSerializer<TResponse>
     ): Response<TResponse> {
         return suspendCoroutine { continuation ->
             try {
@@ -121,6 +122,25 @@ internal class GroupMe(
                 continuation.resumeWith(Result.failure(throwable))
             }
         }
+    }
+
+    private suspend fun <TResponse> apiPost(
+        url: String,
+        responseSerializer: KSerializer<TResponse>
+    ): Response<TResponse> {
+        return apiPost(url, null, NothingSerializer, responseSerializer)
+    }
+
+    private suspend fun <TRequest> apiPost(
+        url: String,
+        request: TRequest?,
+        requestSerializer: KSerializer<TRequest>
+    ): Response<Nothing> {
+        return apiPost(url, request, requestSerializer, NothingSerializer)
+    }
+
+    private suspend fun apiPost(url: String): Response<Nothing> {
+        return apiPost(url, null, NothingSerializer, NothingSerializer)
     }
 
     override val groups = object : GroupsApi {
@@ -158,7 +178,7 @@ internal class GroupMe(
         }
 
         override fun get(id: String) = object : GroupApi {
-            val groupUrlBase = "/groups/${id.urlEncoding()}"
+            val groupUrlBase = "/groups/${id.urlEncoded()}"
 
             override suspend fun invoke(): Response<Group> {
                 return apiGet(
@@ -177,10 +197,7 @@ internal class GroupMe(
             }
 
             override suspend fun destroy(): Response<Nothing> {
-                return apiPost(
-                    url = groupUrlBase,
-                    request = null
-                )
+                return apiPost(groupUrlBase)
             }
 
             override val join = object : JoinApi {
@@ -189,26 +206,67 @@ internal class GroupMe(
                 override suspend fun invoke(): Response<Group> {
                     return apiPost(
                         url = joinUrlBase,
-                        request = null,
                         responseSerializer = Group.serializer()
                     )
                 }
 
                 override fun get(shareToken: String) = object : JoinWithTokenApi {
-                    val shareJoinUrlBase = "$joinUrlBase/${shareToken.urlEncoding()}"
+                    val shareJoinUrlBase = "$joinUrlBase/${shareToken.urlEncoded()}"
 
                     override suspend fun invoke(): Response<GroupJoinResponse> {
                         return apiPost(
                             url = shareJoinUrlBase,
-                            request = null,
                             responseSerializer = GroupJoinResponse.serializer()
                         )
                     }
                 }
             }
 
-            override val members: MembersApi
-                get() = TODO("not implemented")
+            override val members = object : MembersApi {
+                val membersUrlBase = "$groupUrlBase/members"
+
+                override suspend fun add(request: MemberAddRequest): Response<MemberAddResponse> {
+                    return apiPost(
+                        url = "$membersUrlBase/add",
+                        request = request,
+                        requestSerializer = MemberAddRequest.serializer(),
+                        responseSerializer = MemberAddResponse.serializer()
+                    )
+                }
+
+                override fun get(id: String) = object : MemberApi {
+                    val memberIdUrlBase = "$membersUrlBase/${id.urlEncoded()}"
+
+                    override suspend fun remove(): Response<Nothing> {
+                        return apiPost("$memberIdUrlBase/remove")
+                    }
+
+                    override suspend fun update(request: MemberUpdateRequest): Response<Member> {
+                        return apiPost(
+                            url = "$memberIdUrlBase/update",
+                            request = request,
+                            requestSerializer = MemberUpdateRequest.serializer(),
+                            responseSerializer = Member.serializer()
+                        )
+                    }
+                }
+
+                override val results = object : ResultsApi {
+                    val resultUrlBase = "$membersUrlBase/results"
+
+                    override fun get(resultsId: String) = object : ResultApi {
+                        val resultIdUrlBase = "$resultUrlBase/${resultsId.urlEncoded()}"
+
+                        override suspend fun invoke(): Response<ResultResponse> {
+                            return apiGet(
+                                url = resultIdUrlBase,
+                                responseSerializer = ResultResponse.serializer()
+                            )
+                        }
+                    }
+                }
+            }
+
             override val messages: GroupMessagesApi
                 get() = TODO("not implemented")
         }

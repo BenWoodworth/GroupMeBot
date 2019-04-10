@@ -11,9 +11,9 @@ interface GroupMeApiV3 {
      * [https://dev.groupme.com/docs/v3#v3]
      */
     @Serializable
-    data class Response<T : Any>(
+    data class Response<T>(
         val response: T? = null,
-        val meta: Meta? = null
+        val meta: Meta
     ) {
         @Serializable
         data class Meta(
@@ -218,7 +218,7 @@ interface GroupMeApiV3 {
                 )
 
 
-                operator fun get(membershipId: String): MemberApi
+                operator fun get(id: String): MemberApi
 
                 interface MemberApi {
 
