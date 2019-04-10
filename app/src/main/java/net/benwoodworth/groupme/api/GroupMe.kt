@@ -91,6 +91,7 @@ internal class GroupMe(
 
     private suspend fun <TRequest, TResponse> apiPost(
         url: String,
+        parameters: Map<String, String?> = emptyMap(),
         request: TRequest?,
         requestSerializer: KSerializer<TRequest>,
         responseSerializer: KSerializer<TResponse>
@@ -98,7 +99,11 @@ internal class GroupMe(
         return suspendCoroutine { continuation ->
             try {
                 @Suppress("UNCHECKED_CAST")
-                val tokenParams = mapOf("token" to accessToken)
+                val tokenParams = parameters
+                    .filterValues { it != null }
+                    .toMutableMap() as MutableMap<String, String>
+
+                tokenParams += "token" to accessToken
 
                 val requestJson = request?.let {
                     json.stringify(
@@ -128,21 +133,44 @@ internal class GroupMe(
 
     private suspend fun <TResponse> apiPost(
         url: String,
+        parameters: Map<String, String?> = emptyMap(),
         responseSerializer: KSerializer<TResponse>
     ): Response<TResponse> {
-        return apiPost(url, null, NothingSerializer, responseSerializer)
+        return apiPost(
+            url = url,
+            parameters = parameters,
+            request = null,
+            requestSerializer = NothingSerializer,
+            responseSerializer = responseSerializer
+        )
     }
 
     private suspend fun <TRequest> apiPost(
         url: String,
+        parameters: Map<String, String?> = emptyMap(),
         request: TRequest?,
         requestSerializer: KSerializer<TRequest>
     ): Response<Nothing> {
-        return apiPost(url, request, requestSerializer, NothingSerializer)
+        return apiPost(
+            url = url,
+            parameters = parameters,
+            request = request,
+            requestSerializer = requestSerializer,
+            responseSerializer = NothingSerializer
+        )
     }
 
-    private suspend fun apiPost(url: String): Response<Nothing> {
-        return apiPost(url, null, NothingSerializer, NothingSerializer)
+    private suspend fun apiPost(
+        url: String,
+        parameters: Map<String, String?> = emptyMap()
+    ): Response<Nothing> {
+        return apiPost(
+            url = url,
+            parameters = parameters,
+            request = null,
+            requestSerializer = NothingSerializer,
+            responseSerializer = NothingSerializer
+        )
     }
 
     override val groups = object : GroupsApi {
@@ -453,30 +481,54 @@ internal class GroupMe(
     }
 
     override val blocks = object : BlocksApi {
+        val blocksUrlBase = "/blocks"
 
         override suspend fun invoke(user: String): Response<BlocksIndexResponse> {
-            TODO("not implemented")
+            return apiGet(
+                url = blocksUrlBase,
+                responseSerializer = BlocksIndexResponse.serializer()
+            )
         }
 
         override suspend fun between(
             user: String,
             otherUser: String
         ): Response<BlockBetweenResponse> {
-            TODO("not implemented")
+            return apiGet(
+                url = "$blocksUrlBase/between",
+                parameters = mapOf(
+                    "user" to user,
+                    "otherUser" to otherUser
+                ),
+                responseSerializer = BlockBetweenResponse.serializer()
+            )
         }
 
         override suspend fun invoke(
             user: String,
             otherUser: String
         ): Response<BlockCreateResponse> {
-            TODO("not implemented")
+            return apiPost(
+                url = blocksUrlBase,
+                parameters = mapOf(
+                    "user" to user,
+                    "otherUser" to otherUser
+                ),
+                responseSerializer = BlockCreateResponse.serializer()
+            )
         }
 
         override suspend fun delete(
             user: String,
             otherUser: String
         ): Response<Nothing> {
-            TODO("not implemented")
+            return apiPost(
+                url = "$blocksUrlBase/delete",
+                parameters = mapOf(
+                    "user" to user,
+                    "otherUser" to otherUser
+                )
+            )
         }
     }
 }
