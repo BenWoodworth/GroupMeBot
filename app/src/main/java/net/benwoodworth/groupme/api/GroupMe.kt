@@ -385,21 +385,34 @@ internal class GroupMe(
     }
 
     override val bots = object : BotsApi {
+        val botsUrlBase = "/bots"
 
         override suspend fun invoke(request: BotCreateRequest): Response<Bot> {
-            TODO("not implemented")
+            return apiPost(
+                url = botsUrlBase,
+                request = request,
+                requestSerializer = BotCreateRequest.serializer(),
+                responseSerializer = Bot.serializer()
+            )
         }
 
         override suspend fun post(request: BotPostRequest): Response<Nothing> {
-            TODO("not implemented")
+            return apiPost(
+                url = "$botsUrlBase/post",
+                request = request,
+                requestSerializer = BotPostRequest.serializer()
+            )
         }
 
         override suspend fun invoke(): Response<List<Bot>> {
-            TODO("not implemented")
+            return apiGet(
+                url = botsUrlBase,
+                responseSerializer = Bot.serializer().list
+            )
         }
 
         override suspend fun destroy(request: BotDestroyRequest): Response<Nothing> {
-            TODO("not implemented")
+            return apiPost("$botsUrlBase/destroy")
         }
     }
 
