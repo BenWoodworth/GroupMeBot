@@ -322,6 +322,7 @@ interface GroupMeApiV3 {
 
         interface GroupLikesApi {
 
+            @Serializable
             data class GroupLikesResponse(
                 val messages: List<GroupMessage>
             )

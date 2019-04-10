@@ -145,6 +145,7 @@ internal class GroupMe(
     }
 
     override val groups = object : GroupsApi {
+        val groupsUrlBase = "/groups"
 
         override suspend fun invoke(
             page: Int?,
@@ -152,7 +153,7 @@ internal class GroupMe(
             omit: List<String>?
         ): Response<List<Group>> {
             return apiGet(
-                url = "/groups",
+                url = groupsUrlBase,
                 parameters = mapOf(
                     "page" to page?.toString(),
                     "per_page" to per_page?.toString(),
@@ -164,14 +165,14 @@ internal class GroupMe(
 
         override suspend fun former(): Response<List<Group>> {
             return apiGet(
-                url = "/groups/former",
+                url = "$groupsUrlBase/former",
                 responseSerializer = Group.serializer().list
             )
         }
 
         override suspend fun invoke(request: GroupCreateRequest): Response<Group> {
             return apiPost(
-                url = "/groups",
+                url = groupsUrlBase,
                 request = request,
                 requestSerializer = GroupCreateRequest.serializer(),
                 responseSerializer = Group.serializer()
@@ -179,7 +180,7 @@ internal class GroupMe(
         }
 
         override fun get(id: String) = object : GroupApi {
-            val groupUrlBase = "/groups/${id.urlEncoded()}"
+            val groupUrlBase = "$groupsUrlBase/${id.urlEncoded()}"
 
             override suspend fun invoke(): Response<Group> {
                 return apiGet(
@@ -303,19 +304,30 @@ internal class GroupMe(
         }
 
         override val likes = object : GroupLikesApi {
+            val likesUrlBase = "$groupsUrlBase/likes"
 
             override suspend fun invoke(period: String): Response<GroupLikesResponse> {
-                TODO("not implemented")
+                return apiGet(
+                    url = likesUrlBase,
+                    parameters = mapOf(
+                        "period" to period
+                    ),
+                    responseSerializer = GroupLikesResponse.serializer()
+                )
             }
 
-            override suspend fun mine(
-            ): Response<GroupLikesResponse> {
-                TODO("not implemented")
+            override suspend fun mine(): Response<GroupLikesResponse> {
+                return apiGet(
+                    url = "$likesUrlBase/mine",
+                    responseSerializer = GroupLikesResponse.serializer()
+                )
             }
 
-            override suspend fun for_me(
-            ): Response<GroupLikesResponse> {
-                TODO("not implemented")
+            override suspend fun for_me(): Response<GroupLikesResponse> {
+                return apiGet(
+                    url = "$likesUrlBase/for_me",
+                    responseSerializer = GroupLikesResponse.serializer()
+                )
             }
         }
     }
