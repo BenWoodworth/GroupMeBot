@@ -176,11 +176,11 @@ interface GroupMeApiV3 {
                     /**
                      * [https://dev.groupme.com/docs/v3#groups_join]
                      */
-                    suspend operator fun invoke(): Response<JoinResponse>
+                    suspend operator fun invoke(): Response<GroupJoinResponse>
                 }
 
                 @Serializable
-                data class JoinResponse(
+                data class GroupJoinResponse(
                     val group: Group
                 )
             }

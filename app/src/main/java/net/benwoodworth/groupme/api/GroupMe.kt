@@ -1,8 +1,19 @@
 package net.benwoodworth.groupme.api
 
 import kotlinx.serialization.*
-import kotlinx.serialization.internal.NullableSerializer
 import kotlinx.serialization.json.Json
+import net.benwoodworth.groupme.api.GroupMeApiV3.*
+import net.benwoodworth.groupme.api.GroupMeApiV3.BlocksApi.*
+import net.benwoodworth.groupme.api.GroupMeApiV3.BotsApi.*
+import net.benwoodworth.groupme.api.GroupMeApiV3.DirectMessagesApi.*
+import net.benwoodworth.groupme.api.GroupMeApiV3.GroupsApi.*
+import net.benwoodworth.groupme.api.GroupMeApiV3.GroupsApi.GroupApi.*
+import net.benwoodworth.groupme.api.GroupMeApiV3.GroupsApi.GroupApi.JoinApi.GroupJoinResponse
+import net.benwoodworth.groupme.api.GroupMeApiV3.GroupsApi.GroupApi.JoinApi.JoinWithTokenApi
+import net.benwoodworth.groupme.api.GroupMeApiV3.GroupsApi.GroupLikesApi.GroupLikesResponse
+import net.benwoodworth.groupme.api.GroupMeApiV3.MessagesApi.WithConversationIdApi
+import net.benwoodworth.groupme.api.GroupMeApiV3.UsersApi.*
+import net.benwoodworth.groupme.api.GroupMeApiV3.UsersApi.SmsModeApi.SmsModeCreateRequest
 import java.net.URLEncoder
 import kotlin.coroutines.suspendCoroutine
 
@@ -40,15 +51,15 @@ internal class GroupMe(
         override fun deserialize(decoder: Decoder) = emptyError()
         override fun serialize(encoder: Encoder, obj: Nothing) = emptyError()
 
-        @Suppress("UNCHECKED_CAST")
-        operator fun <T> invoke(): T = this as T
+        @Suppress("UNCHECKED_CAST", "NOTHING_TO_INLINE")
+        inline operator fun <T> invoke(): T = this as T
     }
 
     private suspend fun <TResponse : Any> apiGet(
         url: String,
         parameters: Map<String, String?> = emptyMap(),
         responseSerializer: KSerializer<TResponse>
-    ): GroupMeApiV3.Response<TResponse> {
+    ): Response<TResponse> {
         return suspendCoroutine { continuation ->
             try {
                 @Suppress("UNCHECKED_CAST")
@@ -64,7 +75,7 @@ internal class GroupMe(
                 )
 
                 val response = json.parse(
-                    GroupMeApiV3.Response.serializer(responseSerializer),
+                    Response.serializer(responseSerializer),
                     httpResponse.text
                 )
 
@@ -80,7 +91,7 @@ internal class GroupMe(
         request: TRequest? = null,
         requestSerializer: KSerializer<TRequest> = EmptySerializer(),
         responseSerializer: KSerializer<TResponse> = EmptySerializer()
-    ): GroupMeApiV3.Response<TResponse> {
+    ): Response<TResponse> {
         return suspendCoroutine { continuation ->
             try {
                 @Suppress("UNCHECKED_CAST")
@@ -101,7 +112,7 @@ internal class GroupMe(
 
 
                 val response = json.parse(
-                    GroupMeApiV3.Response.serializer(responseSerializer),
+                    Response.serializer(responseSerializer),
                     httpResponse.text
                 )
 
@@ -112,13 +123,13 @@ internal class GroupMe(
         }
     }
 
-    override val groups = object : GroupMeApiV3.GroupsApi {
+    override val groups = object : GroupsApi {
 
         override suspend fun invoke(
             page: Int?,
             per_page: Int?,
             omit: List<String>?
-        ): GroupMeApiV3.Response<List<GroupMeApiV3.GroupsApi.Group>> {
+        ): Response<List<Group>> {
             return apiGet(
                 url = "/groups",
                 parameters = mapOf(
@@ -126,208 +137,189 @@ internal class GroupMe(
                     "per_page" to per_page?.toString(),
                     "omit" to omit?.joinToString(",")
                 ),
-                responseSerializer = GroupMeApiV3.GroupsApi.Group.serializer().list
+                responseSerializer = Group.serializer().list
             )
         }
 
-        override suspend fun former(): GroupMeApiV3.Response<List<GroupMeApiV3.GroupsApi.Group>> {
+        override suspend fun former(): Response<List<Group>> {
             return apiGet(
                 url = "/groups/former",
-                responseSerializer = GroupMeApiV3.GroupsApi.Group.serializer().list
+                responseSerializer = Group.serializer().list
             )
         }
 
-        override suspend fun invoke(
-            request: GroupMeApiV3.GroupsApi.GroupCreateRequest
-        ): GroupMeApiV3.Response<GroupMeApiV3.GroupsApi.Group> {
+        override suspend fun invoke(request: GroupCreateRequest): Response<Group> {
             return apiPost(
                 url = "/groups",
                 request = request,
-                requestSerializer = GroupMeApiV3.GroupsApi.GroupCreateRequest.serializer(),
-                responseSerializer = GroupMeApiV3.GroupsApi.Group.serializer()
+                requestSerializer = GroupCreateRequest.serializer(),
+                responseSerializer = Group.serializer()
             )
         }
 
-        override fun get(id: String) = object : GroupMeApiV3.GroupsApi.GroupApi {
+        override fun get(id: String) = object : GroupApi {
             val groupUrlBase = "/groups/${id.urlEncoding()}"
 
-            override suspend fun invoke(): GroupMeApiV3.Response<GroupMeApiV3.GroupsApi.Group> {
+            override suspend fun invoke(): Response<Group> {
                 return apiGet(
                     url = groupUrlBase,
-                    responseSerializer = GroupMeApiV3.GroupsApi.Group.serializer()
+                    responseSerializer = Group.serializer()
                 )
             }
 
-            override suspend fun update(
-                request: GroupMeApiV3.GroupsApi.GroupApi.GroupUpdateRequest
-            ): GroupMeApiV3.Response<GroupMeApiV3.GroupsApi.Group> {
+            override suspend fun update(request: GroupUpdateRequest): Response<Group> {
                 return apiPost(
                     url = groupUrlBase,
                     request = request,
-                    requestSerializer = GroupMeApiV3.GroupsApi.GroupApi.GroupUpdateRequest.serializer(),
-                    responseSerializer = GroupMeApiV3.GroupsApi.Group.serializer()
+                    requestSerializer = GroupUpdateRequest.serializer(),
+                    responseSerializer = Group.serializer()
                 )
             }
 
-            override suspend fun destroy(): GroupMeApiV3.Response<Nothing> {
+            override suspend fun destroy(): Response<Nothing> {
                 return apiPost(
                     url = groupUrlBase,
                     request = null
                 )
             }
 
-            override val join = object : GroupMeApiV3.GroupsApi.GroupApi.JoinApi {
+            override val join = object : JoinApi {
                 val joinUrlBase = "$groupUrlBase/join"
 
-                override suspend fun invoke(): GroupMeApiV3.Response<GroupMeApiV3.GroupsApi.Group> {
+                override suspend fun invoke(): Response<Group> {
                     return apiPost(
                         url = joinUrlBase,
                         request = null,
-                        responseSerializer = GroupMeApiV3.GroupsApi.Group.serializer()
+                        responseSerializer = Group.serializer()
                     )
                 }
 
-                override fun get(shareToken: String) =
-                    object : GroupMeApiV3.GroupsApi.GroupApi.JoinApi.JoinWithTokenApi {
-                        val shareJoinUrlBase = "$joinUrlBase/${shareToken.urlEncoding()}"
+                override fun get(shareToken: String) = object : JoinWithTokenApi {
+                    val shareJoinUrlBase = "$joinUrlBase/${shareToken.urlEncoding()}"
 
-                        override suspend fun invoke(): GroupMeApiV3.Response<GroupMeApiV3.GroupsApi.GroupApi.JoinApi.JoinResponse> {
-                            return apiPost(
-                                url = shareJoinUrlBase,
-                                request = null,
-                                responseSerializer = GroupMeApiV3.GroupsApi.GroupApi.JoinApi.JoinResponse.serializer()
-                            )
-                        }
+                    override suspend fun invoke(): Response<GroupJoinResponse> {
+                        return apiPost(
+                            url = shareJoinUrlBase,
+                            request = null,
+                            responseSerializer = GroupJoinResponse.serializer()
+                        )
                     }
+                }
             }
 
-            override val members: GroupMeApiV3.GroupsApi.GroupApi.MembersApi
+            override val members: MembersApi
                 get() = TODO("not implemented")
-            override val messages: GroupMeApiV3.GroupsApi.GroupApi.GroupMessagesApi
+            override val messages: GroupMessagesApi
                 get() = TODO("not implemented")
         }
 
-        override val likes = object : GroupMeApiV3.GroupsApi.GroupLikesApi {
+        override val likes = object : GroupLikesApi {
 
-            override suspend fun invoke(
-                period: String
-            ): GroupMeApiV3.Response<GroupMeApiV3.GroupsApi.GroupLikesApi.GroupLikesResponse> {
+            override suspend fun invoke(period: String): Response<GroupLikesResponse> {
                 TODO("not implemented")
             }
 
             override suspend fun mine(
-            ): GroupMeApiV3.Response<GroupMeApiV3.GroupsApi.GroupLikesApi.GroupLikesResponse> {
+            ): Response<GroupLikesResponse> {
                 TODO("not implemented")
             }
 
             override suspend fun for_me(
-            ): GroupMeApiV3.Response<GroupMeApiV3.GroupsApi.GroupLikesApi.GroupLikesResponse> {
+            ): Response<GroupLikesResponse> {
                 TODO("not implemented")
             }
         }
     }
 
-    override val direct_messages = object : GroupMeApiV3.DirectMessagesApi {
+    override val direct_messages = object : DirectMessagesApi {
 
         override suspend fun invoke(
             other_user_id: String,
             before_id: String?,
             since_id: String?
-        ): GroupMeApiV3.Response<GroupMeApiV3.DirectMessagesApi.IndexResponse> {
+        ): Response<IndexResponse> {
             TODO("not implemented")
         }
 
         override suspend fun invoke(
-            request: GroupMeApiV3.DirectMessagesApi.DirectMessageCreateRequest
-        ): GroupMeApiV3.Response<GroupMeApiV3.DirectMessagesApi.DirectMessageCreateResponse> {
+            request: DirectMessageCreateRequest
+        ): Response<DirectMessageCreateResponse> {
             TODO("not implemented")
         }
     }
 
-    override val messages = object : GroupMeApiV3.MessagesApi {
+    override val messages = object : MessagesApi {
 
-        override fun get(conversation_id: String): GroupMeApiV3.MessagesApi.WithConversationIdApi {
+        override fun get(conversation_id: String): WithConversationIdApi {
             TODO("not implemented")
         }
     }
 
-    override val bots = object : GroupMeApiV3.BotsApi {
+    override val bots = object : BotsApi {
 
-        override suspend fun invoke(
-            request: GroupMeApiV3.BotsApi.BotCreateRequest
-        ): GroupMeApiV3.Response<GroupMeApiV3.BotsApi.Bot> {
+        override suspend fun invoke(request: BotCreateRequest): Response<Bot> {
             TODO("not implemented")
         }
 
-        override suspend fun post(
-            request: GroupMeApiV3.BotsApi.BotPostRequest
-        ): GroupMeApiV3.Response<Nothing> {
+        override suspend fun post(request: BotPostRequest): Response<Nothing> {
             TODO("not implemented")
         }
 
-        override suspend fun invoke(): GroupMeApiV3.Response<List<GroupMeApiV3.BotsApi.Bot>> {
+        override suspend fun invoke(): Response<List<Bot>> {
             TODO("not implemented")
         }
 
-        override suspend fun destroy(
-            request: GroupMeApiV3.BotsApi.BotDestroyRequest
-        ): GroupMeApiV3.Response<Nothing> {
+        override suspend fun destroy(request: BotDestroyRequest): Response<Nothing> {
             TODO("not implemented")
         }
     }
 
-    override val users = object : GroupMeApiV3.UsersApi {
+    override val users = object : UsersApi {
 
-        override suspend fun me(): GroupMeApiV3.Response<GroupMeApiV3.UsersApi.User> {
+        override suspend fun me(): Response<User> {
             TODO("not implemented")
         }
 
-        override suspend fun update(
-            request: GroupMeApiV3.UsersApi.UserUpdateRequest
-        ): GroupMeApiV3.Response<GroupMeApiV3.UsersApi.User> {
+        override suspend fun update(request: UserUpdateRequest): Response<User> {
             TODO("not implemented")
         }
 
-        override val sms_mode = object : GroupMeApiV3.UsersApi.SmsModeApi {
+        override val sms_mode = object : SmsModeApi {
 
-            override suspend fun invoke(
-                request: GroupMeApiV3.UsersApi.SmsModeApi.SmsModeCreateRequest
-            ): GroupMeApiV3.Response<Nothing> {
+            override suspend fun invoke(request: SmsModeCreateRequest): Response<Nothing> {
                 TODO("not implemented")
             }
 
-            override suspend fun delete(): GroupMeApiV3.Response<Nothing> {
+            override suspend fun delete(): Response<Nothing> {
                 TODO("not implemented")
             }
         }
     }
 
-    override val blocks = object : GroupMeApiV3.BlocksApi {
+    override val blocks = object : BlocksApi {
 
-        override suspend fun invoke(
-            user: String
-        ): GroupMeApiV3.Response<GroupMeApiV3.BlocksApi.BlocksIndexResponse> {
+        override suspend fun invoke(user: String): Response<BlocksIndexResponse> {
             TODO("not implemented")
         }
 
         override suspend fun between(
             user: String,
             otherUser: String
-        ): GroupMeApiV3.Response<GroupMeApiV3.BlocksApi.BlockBetweenResponse> {
+        ): Response<BlockBetweenResponse> {
             TODO("not implemented")
         }
 
         override suspend fun invoke(
             user: String,
             otherUser: String
-        ): GroupMeApiV3.Response<GroupMeApiV3.BlocksApi.BlockCreateResponse> {
+        ): Response<BlockCreateResponse> {
             TODO("not implemented")
         }
 
         override suspend fun delete(
             user: String,
             otherUser: String
-        ): GroupMeApiV3.Response<Nothing> {
+        ): Response<Nothing> {
             TODO("not implemented")
         }
     }
