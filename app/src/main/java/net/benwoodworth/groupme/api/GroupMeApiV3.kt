@@ -1,5 +1,6 @@
 package net.benwoodworth.groupme.api
 
+import kotlinx.serialization.Optional
 import kotlinx.serialization.Serializable
 
 /**
@@ -18,21 +19,21 @@ interface GroupMeApiV3 {
         @Serializable
         data class Meta(
             val code: Int,
-            val errors: List<String>? = null
+            @Optional val errors: List<String>? = null
         )
     }
 
     @Serializable
     data class Attachment(
         val type: String,
-        val url: String? = null,
-        val lat: Float? = null,
-        val lng: Float? = null,
-        val name: String? = null,
-        val token: String? = null,
-        val placeholder: String? = null,
-        val charmap: List<List<Int>>? = null,
-        val user_ids: List<String>?
+        @Optional val url: String? = null,
+        @Optional val lat: Float? = null,
+        @Optional val lng: Float? = null,
+        @Optional val name: String? = null,
+        @Optional val token: String? = null,
+        @Optional val placeholder: String? = null,
+        @Optional val charmap: List<List<Int>>? = null,
+        @Optional val user_ids: List<String>? = null
     )
 
 
@@ -49,19 +50,19 @@ interface GroupMeApiV3 {
             val name: String,
             val type: String,
             val description: String,
-            val image_url: String,
+            val image_url: String? = null,
             val creator_user_id: String,
             val created_at: Long,
             val updated_at: Long,
-            val members: List<Member>?,
-            val share_url: String,
+            val members: List<Member>,
+            val share_url: String? = null,
             val messages: Messages
         ) {
             @Serializable
             data class Messages(
                 val count: Int,
                 val last_message_id: String,
-                val last_message_creates_at: String,
+                @Optional val last_message_creates_at: String? = null,
                 val preview: Preview
             ) {
                 @Serializable
@@ -80,11 +81,11 @@ interface GroupMeApiV3 {
             val user_id: String,
             val nickname: String,
             val muted: Boolean,
-            val image_url: String,
+            val image_url: String? = null,
             val autokicked: Boolean,
-            val app_installed: Boolean,
+            @Optional val app_installed: Boolean? = null,
             val roles: List<String>,
-            val state: String
+            @Optional val state: String? = null
         )
 
         @Serializable
@@ -123,7 +124,7 @@ interface GroupMeApiV3 {
 
         @Serializable
         data class GroupCreateRequest(
-            val name:String,
+            val name: String,
             val description: String? = null,
             val image_url: String? = null,
             val share: Boolean? = null
