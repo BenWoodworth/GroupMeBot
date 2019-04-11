@@ -20,20 +20,17 @@ import net.benwoodworth.groupme.api.GroupMeApiV3.MessagesApi.WithConversationIdA
 import net.benwoodworth.groupme.api.GroupMeApiV3.MessagesApi.WithConversationIdApi.WithMessageIdApi
 import net.benwoodworth.groupme.api.GroupMeApiV3.UsersApi.*
 import net.benwoodworth.groupme.api.GroupMeApiV3.UsersApi.SmsModeApi.SmsModeCreateRequest
-import java.net.URLEncoder
-import kotlin.coroutines.suspendCoroutine
 
-internal class GroupMe(
+class GroupMe(
     private val accessToken: String
 ) : GroupMeApiV3 {
 
     private val apiUrlBase = "https://api.groupme.com/v3"
 
-    private val json = Json(encodeDefaults = false)
-
-    private fun String.urlEncoded(): String {
-        return URLEncoder.encode(this)
-    }
+    private val json = Json(
+        encodeDefaults = false,
+        strictMode = false
+    )
 
     private object NothingSerializer : KSerializer<Nothing> {
 
@@ -59,30 +56,17 @@ internal class GroupMe(
         parameters: Map<String, String?> = emptyMap(),
         responseSerializer: KSerializer<TResponse>
     ): Response<TResponse> {
-        return suspendCoroutine { continuation ->
-            try {
-                @Suppress("UNCHECKED_CAST")
-                val paramsWithToken = parameters
-                    .filterValues { it != null }
-                    .toMutableMap() as MutableMap<String, String>
+        val httpResponse = buildUrl(
+            url = url,
+            params = parameters + ("token" to accessToken)
+        ).request(
+            method = "GET"
+        )
 
-                paramsWithToken += "token" to accessToken
-
-                val httpResponse = khttp.get(
-                    url = url,
-                    params = paramsWithToken
-                )
-
-                val response = json.parse(
-                    Response.serializer(responseSerializer),
-                    httpResponse.text
-                )
-
-                continuation.resumeWith(Result.success(response))
-            } catch (throwable: Throwable) {
-                continuation.resumeWith(Result.failure(throwable))
-            }
-        }
+        return json.parse(
+            Response.serializer(responseSerializer),
+            httpResponse.data.toString(Charsets.UTF_8)
+        )
     }
 
     private suspend fun <TRequest, TResponse> apiPost(
@@ -92,39 +76,25 @@ internal class GroupMe(
         requestSerializer: KSerializer<TRequest>,
         responseSerializer: KSerializer<TResponse>
     ): Response<TResponse> {
-        return suspendCoroutine { continuation ->
-            try {
-                @Suppress("UNCHECKED_CAST")
-                val paramsWithToken = parameters
-                    .filterValues { it != null }
-                    .toMutableMap() as MutableMap<String, String>
-
-                paramsWithToken += "token" to accessToken
-
-                val requestJson = request?.let {
-                    json.stringify(
-                        requestSerializer,
-                        request
-                    )
-                }
-
-                val httpResponse = khttp.post(
-                    url = url,
-                    params = paramsWithToken,
-                    json = requestJson
-                )
-
-
-                val response = json.parse(
-                    Response.serializer(responseSerializer),
-                    httpResponse.text
-                )
-
-                continuation.resumeWith(Result.success(response))
-            } catch (throwable: Throwable) {
-                continuation.resumeWith(Result.failure(throwable))
-            }
+        val requestData = request?.let {
+            json.stringify(
+                requestSerializer,
+                request
+            )
         }
+
+        val httpResponse = buildUrl(
+            url = url,
+            params = parameters + ("token" to accessToken)
+        ).request(
+            method = "POST",
+            data = requestData?.toByteArray(Charsets.UTF_8)
+        )
+
+        return json.parse(
+            Response.serializer(responseSerializer),
+            httpResponse.data.toString(Charsets.UTF_8)
+        )
     }
 
     private suspend fun <TResponse> apiPost(
@@ -205,7 +175,7 @@ internal class GroupMe(
         }
 
         override fun get(id: String) = object : GroupApi {
-            private val groupUrlBase = "$groupsUrlBase/${id.urlEncoded()}"
+            private val groupUrlBase = "$groupsUrlBase/${id.urlEncode()}"
 
             override suspend fun invoke(): Response<Group> {
                 return apiGet(
@@ -238,7 +208,7 @@ internal class GroupMe(
                 }
 
                 override fun get(shareToken: String) = object : JoinWithTokenApi {
-                    private val shareJoinUrlBase = "$joinUrlBase/${shareToken.urlEncoded()}"
+                    private val shareJoinUrlBase = "$joinUrlBase/${shareToken.urlEncode()}"
 
                     override suspend fun invoke(): Response<GroupJoinResponse> {
                         return apiPost(
@@ -262,7 +232,7 @@ internal class GroupMe(
                 }
 
                 override fun get(id: String) = object : MemberApi {
-                    private val memberIdUrlBase = "$membersUrlBase/${id.urlEncoded()}"
+                    private val memberIdUrlBase = "$membersUrlBase/${id.urlEncode()}"
 
                     override suspend fun remove(): Response<Nothing> {
                         return apiPost("$memberIdUrlBase/remove")
@@ -282,7 +252,7 @@ internal class GroupMe(
                     private val resultUrlBase = "$membersUrlBase/results"
 
                     override fun get(resultsId: String) = object : ResultApi {
-                        private val resultIdUrlBase = "$resultUrlBase/${resultsId.urlEncoded()}"
+                        private val resultIdUrlBase = "$resultUrlBase/${resultsId.urlEncode()}"
 
                         override suspend fun invoke(): Response<ResultResponse> {
                             return apiGet(
@@ -392,10 +362,10 @@ internal class GroupMe(
         private val messagesUrlBase = "$apiUrlBase/messages"
 
         override fun get(conversation_id: String) = object : WithConversationIdApi {
-            private val conversationIdUrlBase = "$messagesUrlBase/${conversation_id.urlEncoded()}"
+            private val conversationIdUrlBase = "$messagesUrlBase/${conversation_id.urlEncode()}"
 
             override fun get(message_id: String) = object : WithMessageIdApi {
-                private val messageIdUrlBase = "$conversationIdUrlBase/${message_id.urlEncoded()}"
+                private val messageIdUrlBase = "$conversationIdUrlBase/${message_id.urlEncode()}"
 
                 override suspend fun like(): Response<Nothing> {
                     return apiPost("$messageIdUrlBase/like")
