@@ -276,9 +276,9 @@ interface GroupMeApiV3 {
             interface GroupMessagesApi {
 
                 /**
-                 * [https://dev.groupme.com/docs/v3#messages]
+                 * [https://dev.groupme.com/docs/v3#messages_index]
                  */
-                suspend fun invoke(
+                suspend operator fun invoke(
                     before_id: String? = null,
                     since_id: String? = null,
                     after_id: String? = null,
@@ -294,7 +294,7 @@ interface GroupMeApiV3 {
                 /**
                  * [https://dev.groupme.com/docs/v3#messages_create]
                  */
-                suspend fun invoke(request: GroupMessageCreateRequest): Response<GroupMessageCreateResponse>
+                suspend operator fun invoke(request: GroupMessageCreateRequest): Response<GroupMessageCreateResponse>
 
                 @Serializable
                 data class GroupMessageCreateRequest(
@@ -485,7 +485,7 @@ interface GroupMeApiV3 {
         /**
          * [https://dev.groupme.com/docs/v3#bots_index]
          */
-        suspend fun invoke(): Response<List<Bot>>
+        suspend operator fun invoke(): Response<List<Bot>>
 
         /**
          * [https://dev.groupme.com/docs/v3#bots_destroy]
