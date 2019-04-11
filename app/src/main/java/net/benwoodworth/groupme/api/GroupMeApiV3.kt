@@ -96,8 +96,8 @@ interface GroupMeApiV3 {
             val user_id: String,
             val group_id: String,
             val name: String,
-            val avatar_url: String,
-            val text: String,
+            val avatar_url: String?,
+            val text: String?,
             val system: Boolean,
             val favorited_by: List<String>,
             val attachments: List<Attachment>

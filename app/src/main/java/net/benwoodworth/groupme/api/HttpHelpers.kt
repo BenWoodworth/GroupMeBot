@@ -1,6 +1,5 @@
 package net.benwoodworth.groupme.api
 
-import android.util.Log
 import java.net.HttpURLConnection
 import java.net.URL
 import java.net.URLEncoder
@@ -71,8 +70,6 @@ internal suspend fun URL.request(
                     responseMessage = connection.responseMessage,
                     data = reader.readBytes()
                 )
-
-                Log.i("HTTP RESPONSE", response.data.toString(Charsets.UTF_8))
 
                 continuation.resume(response)
             }
